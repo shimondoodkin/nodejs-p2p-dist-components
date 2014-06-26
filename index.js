@@ -1,6 +1,7 @@
 /*
  *
- * Pipeline
+ * Node.js P2P Dist Components
+ * License 2 Close BSD: Copyright to Shimon Doodkin helpmepro1@gmail.com
  *
  */
 
@@ -8,8 +9,8 @@
 var zmq = require('zmq'),EventEmitter = require("events").EventEmitter,XXH=require('xxhashjs');
 
 
-zmqport = 'tcp://127.0.0.1:7845';
-zmqsockets=[];
+zmqport = 'tcp://127.0.0.1:7845'; //not used
+zmqsockets=[]; // list of connected sockets for debugging
 
 //zmqclientid="";
 zmqdedupprint=false;
