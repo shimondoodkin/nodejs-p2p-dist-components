@@ -1,0 +1,32 @@
+{
+  "name": "p2p-dist-components",
+  "version": "0.0.0",
+  "description": "p2p auto discovery distributed components. using telepathine and zmq",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/shimondoodkin/nodejs-p2p-dist-components.git"
+  },
+  "author": "Shimon Doodkin",
+  "license": "BSD",
+  "bugs": {
+    "url": "https://github.com/shimondoodkin/nodejs-p2p-dist-components/issues"
+  },
+  "homepage": "https://github.com/shimondoodkin/nodejs-p2p-dist-components",
+  "keywords": [
+    "zmq",
+    "telepathine",
+    "p2p",
+    "discovery",
+    "distributed",
+    "components"
+  ],
+  "dependencies": {
+    "telepathine": "https://github.com/automenta/telepathine.git#master",
+    "zmq": "^2.7.0",
+    "xxhashjs": "0.0.5"
+  }
+}
