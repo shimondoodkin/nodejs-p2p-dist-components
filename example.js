@@ -31,15 +31,15 @@ example_announcer_start=function()
     var component_description=zmq_new_component_description('example_announcer');
 	//no inputs
 	//just clients  that connect to servers that want our information
+
 	
+		
 	var sendclients_dbinserter=component_description.sendclients
 	 
-	var clientid=Math.round(Math.random()*1000)+1;
-    var dedupsendstate1= {prev_send:null,count_send:0};
 
 	// put here some event emmiter subscription code,
 	// that on('data') does:
-    //    sendclients_dbinserter( zmqdedupsend(data,dedupsendstate1,clientid) ) //clientid is not required (you can put empty string there) is used to know witch client passed the dedupreceive
+    //    component_description.sendclients( data )
 	
 	// the kind of simple emiter of data to insert
 	setInterval(function(){/// T
@@ -49,7 +49,7 @@ example_announcer_start=function()
 	n=Math.floor(n/3);
 	var messagetype='time';
 	var data=n;
-	sendclients_dbinserter( zmqdedupsend([messagetype,data],dedupsendstate1,clientid) )
+	sendclients_dbinserter([messagetype,data])
 	},3000);
 	
 	
@@ -63,17 +63,12 @@ example_announcer_start=function()
 example_dbinserter_start=function()
 {
     var component_description=zmq_new_component_description('example_dbinserter');
-	
-	
 	//accept example_announcer:
-	
-	var receivestate1={emitedh:[],emitedt:[],emitedd:[]}
-	var zmqs_example_log=component_description.addportfor('example_announcer',function(str)
+	var zmqs_example_log=component_description.addportfor('example_announcer',function(re)
 	{
-	 var re=dedupreceive(str.toString(),receivestate1);
 	 if(re!==undefined)
 	 {
-	  if(!component_description.checkisportmaster(zmqs_example_log,'example_announcer')) { return;}
+	  if(!component_description.checkisportmaster(zmqs_example_log)) { return;}
 	  //var x=flat.flat(re);x['app']=appid;
 	  //console.log('dbinsert');
       //console.log('dbinsert','public.example_log',x);
@@ -82,13 +77,11 @@ example_dbinserter_start=function()
 	 }
 	});
 		
-	var receivestate2={emitedh:[],emitedt:[],emitedd:[]}
-	var zmqs_insert=component_description.addportfor('example_processor',function(str)
+	var zmqs_insert=component_description.addportfor('example_processor',function(re)
 	{
-	 var re=dedupreceive(str.toString(),receivestate2);
 	 if(re!==undefined)
 	 {
-	  if(!component_description.checkisportmaster(zmqs_insert,'example_processor')) { return;}
+	  if(!component_description.checkisportmaster(zmqs_insert)) { return;}
 	  //var x=flat.flat(re);x['app']=appid;
 	  //console.log('dbinsert2');
       console.log('dbinsert2',re[0],re[1]);
@@ -110,22 +103,23 @@ example_processor_start=function()
 {
     var component_description=zmq_new_component_description('example_processor');
 	
+	//there is 
+	//zmqs_example_log.sendclients(datatosend,datatohash=undefined)
+
 	var sendclients_dbinserter=component_description.sendclients;
 	
 	var clientid=Math.round(Math.random()*1000)+1;
-    var dedupsendstate1= {prev_send:null,count_send:0};
-	
+    
 	function ex_dbinsert(t,d)
 	{
-	 sendclients_dbinserter( zmqdedupsend([t,d],dedupsendstate1,clientid) )
+	 sendclients_dbinserter([t,d])
 	 //sendclients_dbinserter([t,d])
 	}
 	
-	var receivestate1={emitedh:[],emitedt:[],emitedd:[]}
-	var zmqs_example_log=component_description.addportfor('example_announcer',function(str)
+	
+	var zmqs_example_log=component_description.addportfor('example_announcer',function(re)
 	{
 	 console.log('example processor: received data');
-	 var re=dedupreceive(str.toString(),receivestate1);
 	 if(re!==undefined)
 	 {
 	  //console.log('example processor:  data=',re);

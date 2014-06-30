@@ -1,6 +1,6 @@
 /*
  *
- * Node.js P2P Dist Components
+ * Node.js P2P Distributed Components
  * License 2 Close BSD: Copyright to Shimon Doodkin helpmepro1@gmail.com
  *
  */
@@ -65,7 +65,7 @@ zmqdedupsend=function(data,state,clientid,hashdata)// var state= {prev_send:null
   hashstring=JSON.stringify(hashdata);
   d=JSON.stringify(data);
  }
- else if(data&&data.a1_otimestamp) //my case
+/* else if(data&&data.a1_otimestamp) //my case
  {
   var dataclone=JSON.parse(d=JSON.stringify(data))
   dataclone.a1_otimestamp=Math.round(dataclone.a1_otimestamp/30000);
@@ -77,6 +77,7 @@ zmqdedupsend=function(data,state,clientid,hashdata)// var state= {prev_send:null
   dataclone.timestamp=Math.round(dataclone.timestamp/30000);
   hashstring=JSON.stringify(dataclone);
  }
+ */
  else // no relativly simular timestamps
  {
   d=hashstring=JSON.stringify(data);
@@ -405,7 +406,12 @@ zmq_new_component_description=function (component_name)
 		//listening_zmq1,listening_zmq2
 	];
 	
+	var clientid=Math.round(Math.random()*1000)+1;
+	var dedupsendstate1= {prev_send:null,count_send:0};
+	
 	Object.defineProperty(component_description, "clients", { value : clients } );
+	Object.defineProperty(component_description, "dedupsendstate", { value : dedupsendstate1 } );
+	Object.defineProperty(component_description, "clientid", { value : clientid } );//clientid is not required (you can put empty string there) is used to know witch client passed the dedupreceive
 	Object.defineProperty(component_description, "clients_all", { value : clients_all } );
 	Object.defineProperty(component_description, "clients_bypeer", { value : clients_bypeer } );
 	Object.defineProperty(component_description, "servers", { value : servers} );
@@ -417,23 +423,35 @@ zmq_new_component_description=function (component_name)
 	Object.defineProperty(component_description, "addportfor", { value : function(n,f){return addportfor(n,f)} }); //, enumerable:false is default
 	Object.defineProperty(component_description, "checkisportmaster", { value : function(n,f){return checkisportmaster(n,f)} }); //, enumerable:false is default
 	Object.defineProperty(component_description, "setportmaster", { value : function(n,f){return setportmaster(n,f)} }); //, enumerable:false is default
+	Object.defineProperty(component_description, "setportmasterfrom", { value : function(n,f){return setportmasterfrom(n,f)} }); //, enumerable:false is default
+	Object.defineProperty(component_description, "getportmasterfrom", { value : function(p){return getportmasterfrom(p)} }); //, enumerable:false is default
+	
 	
 	function addportfor(other_component_name,onmessage)
 	{
 		//accept bitstamp_announcer:
 		var dbinserterport = 'tcp://*:0';
 		var zmqs_bitstamp_log=zmqlisten(dbinserterport,component_description.name+' for '+other_component_name);
+		var receivestate1={emitedh:[],emitedt:[],emitedd:[]}	
+		zmqs_bitstamp_log.other_component_name=other_component_name;
+		zmqs_bitstamp_log.dedup_receivestate=receivestate1;
 		servers.push(zmqs_bitstamp_log);
 		component_description.inputs[other_component_name]={'zmqport':zmqs_bitstamp_log.last_endpoint,externalip:zmq_getExternalIp()} // bitstamp_announcer can connect to this port
-		if(onmessage)zmqs_bitstamp_log.on("message", onmessage);  //function onmessage(str){}
+		if(!clients[other_component_name]){clients[other_component_name]=[];} var other_clients=clients[other_component_name];
+		zmqs_bitstamp_log.sendclients=function(datatosend,datatohash){return sendclients(datatosend,datatohash,other_clients)};		
+		if(onmessage)zmqs_bitstamp_log.on("message", function(str){
+		 var re=dedupreceive(str.toString(),receivestate1);
+		 return onmessage(re);
+		});  //function onmessage(str){}
 		return zmqs_bitstamp_log;
-	}
+	} 
 	
-	function sendclients(data,selectedclients)
+	function sendclients(datatosend,datatohash,selectedclients)
 	{
+	  var data=zmqdedupsend(datatosend,dedupsendstate1,clientid,datatohash);//sends repeated data as diferent hashes, to be able to send same data multiple times despite the de duplication
 	  //console.log('announcer: clients_all.len',clients_all.length);
 	  //var ct=clients.bitstamp_dbinserter;//no search fast local access
-	  var ct=selectedclients!==undefined?selectedclients:clients_all;	  
+	  var ct=selectedclients!==undefined?selectedclients:clients_all;
 	  for(var i=0;i<ct.length;i++)
 	  {
 	   console.log(component_description.name+': sending data to',ct[i].last_endpoint);
@@ -506,11 +524,40 @@ zmq_new_component_description=function (component_name)
 	   var x=ct.splice(i,1)[0];
 	   console.log('remove from clients_bypeer['+peer_name+']: ',x.last_endpoint);
 	   c.close();
+	  } 
+	}
+	
+	function futureclose()
+	{
+	  for(var zmq1s,i=0;i<servers.length;i++)
+	  {
+	   zmqs1=servers[i]
+	   if ( checkisportmaster(zmqs1) ) 
+	   {
+		setportmasterfrom(zmq1,zmqs1.dedup_state.lasthash)
+	   }
 	  }
+	}
+	
+	function havemasters()
+	{
+	  // this function used: after futureclose if !havemasters() than can exit -> do exit;
+	  // go over all zmq listening ports
+	  for(var zmqs1,i=0;i<servers.length;i++)
+	  {
+	   zmqs1=servers[i]
+	   if ( checkisportmaster(zmqs1) ) 
+	   {
+	    return true;
+	   }
+	  }
+	  return false;
 	}
 	
 	function close()
 	{
+	  
+	  
 	  //close all clients
 	  
 	  //console.log('announcer: clients_all.len',clients_all.length);
@@ -595,8 +642,9 @@ zmq_new_component_description=function (component_name)
 		//})
 	}
 	
-	function checkisportmaster(zmqs1,other_component_description_name)
+	function checkisportmaster(zmqs1/*,other_component_description_name*/)
 	{
+	  var other_component_description_name=zmqs1.other_component_name;
 	  var masterpeername= zmq_telepathine.get('last_component.'+component_description.name+'.'+other_component_description_name+'.peer');
 	  if(!masterpeername)return false;
 	  if(!( zmq_telepathine.peers[ masterpeername ].alive   || masterpeername==zmq_telepathine_self.peer_name ) )
@@ -608,11 +656,23 @@ zmq_new_component_description=function (component_name)
 	  return true;
 	}
 	
-	function setportmaster(zmqs1,other_component_description_name)
+	function setportmaster(zmqs1/*,other_component_description_name*/)
 	{
+	   var other_component_description_name=zmqs1.other_component_name;
 	   zmq_telepathine.set('last_component.'+component_description.name+'.'+other_component_description_name+'',zmqs1.last_endpoint);
 	   zmq_telepathine.set('last_component.'+component_description.name+'.'+other_component_description_name+'.peer',zmq_telepathine_self.peer_name);
 	   console.log("setting:",'last_component.'+component_description.name+'.'+other_component_description_name+'.peer',zmq_telepathine_self.peer_name);
+	}
+	
+	function getportmasterfrom(zmqs1)
+	{
+	  return  zmq_telepathine.get('last_component.'+component_description.name+'.from_hash',from_hash);
+	}
+	
+	function setportmasterfrom(zmqs1,from_hash)
+	{
+	   zmq_telepathine.set('last_component.'+component_description.name+'.from_hash',from_hash);
+	   console.log("setting:",'last_component.'+component_description.name+'.from_hash',from_hash);
 	}
 	
 	return component_description;
