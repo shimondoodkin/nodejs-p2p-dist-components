@@ -3,7 +3,7 @@
 // not sure if need to limit zmq high water limit to something small or and maybe to reconect the same socket on connection loss.// maybe add predictable unique names to sockets of componets so data will reflow by zmq correctly on reconnect. maybe to maintain a starting point to reprocess from and load from database.
 //
 // to run this you need zmq.js and distcomponents.js and npm insta  xxhashjs, and install telepathine module from git and replace in it the file telepathine.js with my file(it makes beleive work as expected)
-// made on 24/6/2014 expected to run on node 0.10...
+// made on 24/6/2014 expected to run on node 0.10... 
 
 process.on('uncaughtException', function (err)
 {
@@ -93,9 +93,14 @@ example_dbinserter_start=function()
 		component_description.setportmaster(zmqs_example_log,'example_announcer');
 		component_description.setportmaster(zmqs_insert,'example_processor');
 	} }); //, enumerable:false is default
+	
+	Object.defineProperty(component_description, "setfuturemaster", { value : function(){
+		component_description.setfutureportmaster(zmqs_example_log,'example_announcer');
+		component_description.setfutureportmaster(zmqs_insert,'example_processor');
+	} }); //, enumerable:false is default
 
 	zmq_telepathine_addcomponent(component_description);
-	component_description.setmaster();
+	//component_description.setmaster();
 	return component_description;
 }
 
@@ -119,7 +124,7 @@ example_processor_start=function()
 	
 	var zmqs_example_log=component_description.addportfor('example_announcer',function(re)
 	{
-	 console.log('example processor: received data');
+	 //console.log('example processor: received data');
 	 if(re!==undefined)
 	 {
 	  //console.log('example processor:  data=',re);

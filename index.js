@@ -85,6 +85,9 @@ zmqdedupsend=function(data,state,clientid,hashdata)// var state= {prev_send:null
  if(state.prev_send==hashstring) state.count_send++; else  state.count_send=0;
  var h = XXH( hashstring , 0xABCD ).toString(16)+state.count_send;
  state.prev_send=hashstring;
+ state.prevhashes.push(hashstring);
+ if(state.prevhashes.length>500)
+  state.prevhashes.splice(0,state.prevhashes.length-250);
  return clientid+' '+h+' '+d;
 }
 //example:
@@ -224,10 +227,24 @@ zmq_telepathine_start=function(startport,toipandport)
 				zmq_telepathine_process_add(fromPeer,data);
 				console.log('hear  componentonline  received ', this.event, '=', data, 'from', fromPeer);
 			});	
+			
 			a.hear('componentoffline', function (data, fromPeer)
 			{
 				console.log('hear  componentonline  received ', this.event, '=', data, 'from', fromPeer);
 			});
+			
+			a.hear('componentunmastered', function (data, fromPeer)
+			{
+			    zmq_telepathine_process_unmastered(fromPeer,data);
+				console.log('hear  componentunmastered  received ', this.event, '=', data, 'from', fromPeer);
+			});
+			
+			a.hear('componentpleaseunmaster', function (data, fromPeer)
+			{
+			    zmq_telepathine_process_pleaseunmaster(fromPeer,data);
+				console.log('hear  componentpleaseunmaster  received ', this.event, '=', data, 'from', fromPeer);
+			});
+			
 			
 			var emptyfunction=function(){};
 			a.hear('bye', function (data, fromPeer)
@@ -276,7 +293,8 @@ function handleexit(cb)
 {
  if( exiting) return;
  exiting=true;
-  //zmq_gossip_remove_all()
+  
+  //all unmaster
   zmq_telepathine_self.say("bye");
  
   // assumin just one disconnects, to make exect switch on disconnect
@@ -284,10 +302,12 @@ function handleexit(cb)
   // the master should set a key from this has i will be master
   // so all slaves know
   
-  setTimeout(function(){
+  setTimeout(function()
+  {
    for(var i=0;i<zmq_telepathine_added_components.length;i++)
     zmq_telepathine_added_components[i].close();
-    setTimeout(function(){if(cb)cb();},1000)//give some time to os to close ports
+	
+   setTimeout(function(){if(cb)cb();},1000)//give some time to os to close ports
   },3000)//Telepathine heartBeatIntervalMS + little
 }
 
@@ -341,6 +361,53 @@ zmq_telepathine_process_add=function(p,c)
  }
 }
 
+
+zmq_telepathine_process_pleaseunmaster=function(p,c)
+{
+ if(p==zmq_telepathine.peer_name)
+ {
+  console.log("don't set self as please unmaster",p,"==",zmq_telepathine.peer_name);
+  return;
+ }
+ var acs=zmq_telepathine_added_components;
+ for(var i=0;i<acs.length;i++)
+ {
+  //seach in any my component needs this new component
+  var cc=acs[i];
+  if(cc.havemasters&&cc.name==c.name)
+  {
+   if(cc.havemasters())
+   {
+    cc.unmaster();
+    zmq_telepathine.say('componentunmastered',JSON.parse(JSON.stringify(cc)));// asks others to compete to be a future master
+   }
+  }
+ }
+}
+
+zmq_telepathine_process_unmastered=function(p,c)
+{
+ if(p==zmq_telepathine.peer_name)
+ {
+  console.log("don't set self as future master when unmastering",p,"==",zmq_telepathine.peer_name);
+  return;
+ }
+ var acs=zmq_telepathine_added_components;
+ for(var i=0;i<acs.length;i++)
+ {
+  var cc=acs[i];
+  //seach is any my component needs this new component
+  if(cc.setfuturemaster && cc.name==c.name)
+  {
+   cc.setfuturemaster();
+  }
+  if(cc.assure_unmaster_of_client &&(c.name in cc.inputs))
+  {
+   cc.assure_unmaster_of_client();
+  }
+ }
+}
+
 zmq_telepathine_process_peer_disconect=function(peer_name)
 {
  var acs=zmq_telepathine_added_components;
@@ -351,6 +418,56 @@ zmq_telepathine_process_peer_disconect=function(peer_name)
   cc.disconnect(peer_name);
  }
 }
+
+
+
+zmq_unmaster_self=function()
+{
+ var acs=zmq_telepathine_added_components;
+ for(var i=0;i<acs.length;i++)
+ {
+  //seach in any my component needs this new component
+  var cc=acs[i];
+  if(cc.havemasters)
+  {
+   if(cc.havemasters())
+   {
+    cc.unmaster();
+    zmq_telepathine.say('componentunmastered',JSON.parse(JSON.stringify(cc)));// asks others to compete to be a future master
+   }
+  }
+ }
+}
+
+
+zmq_unmaster_others=function(p,c)
+{
+ var acs=zmq_telepathine_added_components;
+ for(var i=0;i<acs.length;i++)
+ {
+  var cc=acs[i];
+  if(cc.havemasters)
+  {
+   zmq_telepathine.say('componentpleaseunmaster',JSON.parse(JSON.stringify(cc)));// asks others to compete to be a future master
+  }
+ }
+}
+
+
+zmq_setmaster=function(p,c)
+{
+ var acs=zmq_telepathine_added_components;
+ for(var i=0;i<acs.length;i++)
+ {
+  var cc=acs[i];
+  if(cc.setmaster)
+  {
+   cc.setmaster();
+  }
+ }
+}
+
+
 
 /*
 var example_component_description={
@@ -407,7 +524,7 @@ zmq_new_component_description=function (component_name)
 	];
 	
 	var clientid=Math.round(Math.random()*1000)+1;
-	var dedupsendstate1= {prev_send:null,count_send:0};
+	var dedupsendstate1= {prevhashes:[],prev_send:null,count_send:0};
 	
 	Object.defineProperty(component_description, "clients", { value : clients } );
 	Object.defineProperty(component_description, "dedupsendstate", { value : dedupsendstate1 } );
@@ -416,6 +533,7 @@ zmq_new_component_description=function (component_name)
 	Object.defineProperty(component_description, "clients_bypeer", { value : clients_bypeer } );
 	Object.defineProperty(component_description, "servers", { value : servers} );
 	Object.defineProperty(component_description, "connect", { value : function(p,c){return connect(p,c)} }); //, enumerable:false is default
+	Object.defineProperty(component_description, "original", { value : true }); //, enumerable:false is default
 	Object.defineProperty(component_description, "isconnected", { value : function(c){return isconnected(c)} }); //, enumerable:false is default
 	Object.defineProperty(component_description, "disconnect", { value : function(p){return disconnect(p)} }); //, enumerable:false is default
 	Object.defineProperty(component_description, "close", { value : function(){return close()} }); //, enumerable:false is default
@@ -423,9 +541,13 @@ zmq_new_component_description=function (component_name)
 	Object.defineProperty(component_description, "addportfor", { value : function(n,f){return addportfor(n,f)} }); //, enumerable:false is default
 	Object.defineProperty(component_description, "checkisportmaster", { value : function(n,f){return checkisportmaster(n,f)} }); //, enumerable:false is default
 	Object.defineProperty(component_description, "setportmaster", { value : function(n,f){return setportmaster(n,f)} }); //, enumerable:false is default
+	Object.defineProperty(component_description, "checkisfutureportmaster", { value : function(n,f){return checkisfutureportmaster(n,f)} }); //, enumerable:false is default
+	Object.defineProperty(component_description, "setfutureportmaster", { value : function(n,f){return setfutureportmaster(n,f)} }); //, enumerable:false is default
 	Object.defineProperty(component_description, "setportmasterfrom", { value : function(n,f){return setportmasterfrom(n,f)} }); //, enumerable:false is default
 	Object.defineProperty(component_description, "getportmasterfrom", { value : function(p){return getportmasterfrom(p)} }); //, enumerable:false is default
-	
+	Object.defineProperty(component_description, "havemasters", { value : function(){return havemasters()} }); //, enumerable:false is default
+	Object.defineProperty(component_description, "unmaster", { value : function(){return unmaster()} }); //, enumerable:false is default
+	Object.defineProperty(component_description, "assure_unmaster_of_client", { value : function(){return assure_unmaster_of_client()} }); //, enumerable:false is default
 	
 	function addportfor(other_component_name,onmessage)
 	{
@@ -454,7 +576,7 @@ zmq_new_component_description=function (component_name)
 	  var ct=selectedclients!==undefined?selectedclients:clients_all;
 	  for(var i=0;i<ct.length;i++)
 	  {
-	   console.log(component_description.name+': sending data to',ct[i].last_endpoint);
+	   //console.log(component_description.name+': sending data to',ct[i].last_endpoint);
 	   ct[i].send(data);
 	  }
 	}
@@ -527,16 +649,36 @@ zmq_new_component_description=function (component_name)
 	  } 
 	}
 	
-	function futureclose()
+	//function getunmaster()
+	//{
+	  //return  zmq_telepathine.get('last_component.'+component_description.name+'.unmaster_peer');
+	//}
+	
+	function unmaster()
 	{
+	  //zmq_telepathine.set('last_component.'+component_description.name+'.unmaster_peer',zmq_telepathine_self.peer_name);
+	  //console.log("telepathine.set:",'last_component.'+component_description.name+'.unmaster_peer',zmq_telepathine_self.peer_name);
 	  for(var zmq1s,i=0;i<servers.length;i++)
 	  {
 	   zmqs1=servers[i]
 	   if ( checkisportmaster(zmqs1) ) 
 	   {
-		setportmasterfrom(zmq1,zmqs1.dedup_state.lasthash)
+		setportmasterfrom(zmqs1);
 	   }
 	  }
+	}
+	
+	function assure_unmaster_of_client() // client waits for 5 hashes to pass to unmaster
+	{
+	  function sendundefined()
+	  {
+	   sendclients(undefined,"undefined");
+	  }
+	  setTimeout(sendundefined,1000);
+	  setTimeout(sendundefined,2000);
+	  setTimeout(sendundefined,3000);
+	  setTimeout(sendundefined,4000);
+	  setTimeout(sendundefined,5000);
 	}
 	
 	function havemasters()
@@ -556,8 +698,6 @@ zmq_new_component_description=function (component_name)
 	
 	function close()
 	{
-	  
-	  
 	  //close all clients
 	  
 	  //console.log('announcer: clients_all.len',clients_all.length);
@@ -644,35 +784,138 @@ zmq_new_component_description=function (component_name)
 	
 	function checkisportmaster(zmqs1/*,other_component_description_name*/)
 	{
-	  var other_component_description_name=zmqs1.other_component_name;
+	 var other_component_description_name=zmqs1.other_component_name;
+	 
+	 var fm=checkisfutureportmaster(zmqs1);
+	 if(fm!==null)
+	 {
+	      if(fm)
+		  {
+		    if(!zmqs1.masterset)
+			{
+			 zmqs1.masterset=true;
+			 console.log(component_description.name+' for '+other_component_description_name+' - after getting master from future. set me master');
+			 setportmaster(zmqs1,other_component_description_name);
+			}
+			return true;
+			//if furue is came and iam return true and set me to true if i am master , if i am not master return false , put it first above this ismaster
+		  }
+		  else 
+		   return false;
+	  }
+	  
+	  
+	  
 	  var masterpeername= zmq_telepathine.get('last_component.'+component_description.name+'.'+other_component_description_name+'.peer');
-	  if(!masterpeername)return false;
-	  if(!( zmq_telepathine.peers[ masterpeername ].alive   || masterpeername==zmq_telepathine_self.peer_name ) )
+	  
+	  var setmaster=false;
+	  if(!masterpeername)
+  	   setmaster=true; //no master
+	  else
+	  {
+	   if(!( zmq_telepathine.peers[ masterpeername ].alive  || masterpeername==zmq_telepathine_self.peer_name ) ) //not i am alive  or i am master
+	    setmaster=true;
+	  }
+	  if(setmaster)
  	  {
  	   console.log(component_description.name+' for '+other_component_description_name+' - master dead. back to us');
 	   setportmaster(zmqs1,other_component_description_name);
 	  }
-	  if( zmq_telepathine.get('last_component.'+component_description.name+'.'+other_component_description_name+'') !=zmqs1.last_endpoint) {console.log(component_description.name+' for '+other_component_description_name+' - i am not master'); return false;}
+	  if( zmq_telepathine.get('last_component.'+component_description.name+'.'+other_component_description_name+'') !=zmqs1.last_endpoint)
+	  {
+	   console.log(component_description.name+' for '+other_component_description_name+' - i am not master');
+	   return false;
+	  }
+	  if(zmqs1.masterset) // as became master clean all not needed anymore values.
+	  {
+	   zmqs1.masterset=false;
+	   removeportmasterfrom(zmqs1);
+	   removefutureportmaster(zmqs1);
+	  }
+	  return true;
+	}
+	
+	function checkisfutureportmaster(zmqs1/*,other_component_description_name*/)
+	{
+	  var other_component_description_name=zmqs1.other_component_name;
+	  var masterpeername= zmq_telepathine.get('last_component.'+component_description.name+'.'+other_component_description_name+'.peer.future');
+	  if(!masterpeername)return null;
+	  if(masterpeername!=zmq_telepathine_self.peer_name)
+	  {
+		  if(!zmq_telepathine.peers[ masterpeername ].alive)
+		  {
+		   console.log(component_description.name+' for '+other_component_description_name+' - future master dead. back to us');
+		   setfutureportmaster(zmqs1/*,other_component_description_name*/);
+		  }
+	  }
+
+	  var fromhash=getportmasterfrom(zmqs1);	  
+	  var emitedh=zmqs1.dedup_receivestate.emitedh;
+	  var p=emitedh.lastIndexOf(fromhash);
+	  if(emitedh.length-p>=5&&p!=-1)
+	  {;}
+	  else
+	  {
+	   return null;
+	  }
+	  if(masterpeername!=zmq_telepathine_self.peer_name)
+ 	  {
+ 	   //console.log(component_description.name+' for '+other_component_description_name+' - master dead. back to us');
+	   //setfutureportmaster(zmqs1/*,other_component_description_name*/);
+	   return false;
+	  }
+	  if( zmq_telepathine.get('last_component.'+component_description.name+'.'+other_component_description_name+'.future') !=zmqs1.last_endpoint) {console.log(component_description.name+' for '+other_component_description_name+' - i am not future master'); return false;}
 	  return true;
 	}
 	
 	function setportmaster(zmqs1/*,other_component_description_name*/)
 	{
-	   var other_component_description_name=zmqs1.other_component_name;
-	   zmq_telepathine.set('last_component.'+component_description.name+'.'+other_component_description_name+'',zmqs1.last_endpoint);
-	   zmq_telepathine.set('last_component.'+component_description.name+'.'+other_component_description_name+'.peer',zmq_telepathine_self.peer_name);
-	   console.log("setting:",'last_component.'+component_description.name+'.'+other_component_description_name+'.peer',zmq_telepathine_self.peer_name);
+				  var other_component_description_name=zmqs1.other_component_name;
+				  zmq_telepathine.set('last_component.'+component_description.name+'.'+other_component_description_name+'',zmqs1.last_endpoint);
+				  zmq_telepathine.set('last_component.'+component_description.name+'.'+other_component_description_name+'.peer',zmq_telepathine_self.peer_name);
+	   console.log("telepathine.set:",'last_component.'+component_description.name+'.'+other_component_description_name+'.peer',zmq_telepathine_self.peer_name);
 	}
+	
+	
+	function setfutureportmaster(zmqs1/*,other_component_description_name*/)
+	{
+				  zmqs1.masterset=false;
+				  var other_component_description_name=zmqs1.other_component_name;
+				  zmq_telepathine.set('last_component.'+component_description.name+'.'+other_component_description_name+'.future',zmqs1.last_endpoint);
+				  zmq_telepathine.set('last_component.'+component_description.name+'.'+other_component_description_name+'.peer.future',zmq_telepathine_self.peer_name);
+	   console.log("telepathine.set:",'last_component.'+component_description.name+'.'+other_component_description_name+'.peer.future',zmq_telepathine_self.peer_name);
+	}
+	
+	function removefutureportmaster(zmqs1/*,other_component_description_name*/)
+	{
+				  zmqs1.masterset=false;
+				  var other_component_description_name=zmqs1.other_component_name;
+				  zmq_telepathine.set('last_component.'+component_description.name+'.'+other_component_description_name+'.future',zmqs1.last_endpoint,new Date().getTime());
+				  zmq_telepathine.set('last_component.'+component_description.name+'.'+other_component_description_name+'.peer.future',zmq_telepathine_self.peer_name,new Date().getTime());
+				  console.log("telepathine.set:",'last_component.'+component_description.name+'.'+other_component_description_name+'.peer.future',zmq_telepathine_self.peer_name,new Date().getTime());
+	}
+	
 	
 	function getportmasterfrom(zmqs1)
 	{
-	  return  zmq_telepathine.get('last_component.'+component_description.name+'.from_hash',from_hash);
+	  var other_component_description_name=zmqs1.other_component_name;
+	  return  zmq_telepathine.get('last_component.'+component_description.name+'.'+other_component_description_name+'.from_hash');
 	}
 	
-	function setportmasterfrom(zmqs1,from_hash)
+	function setportmasterfrom(zmqs1)
 	{
-	   zmq_telepathine.set('last_component.'+component_description.name+'.from_hash',from_hash);
-	   console.log("setting:",'last_component.'+component_description.name+'.from_hash',from_hash);
+	   var other_component_description_name=zmqs1.other_component_name;
+	   var emitedh=zmqs1.dedup_receivestate.emitedh;
+	   var from_hash=emitedh[emitedh.length-1];
+	   zmq_telepathine.set('last_component.'+component_description.name+'.'+other_component_description_name+'.from_hash',from_hash);
+	   console.log("telepathine.set:",'last_component.'+component_description.name+'.'+other_component_description_name+'.from_hash',from_hash);
+	}
+	
+	function removeportmasterfrom(zmqs1)
+	{
+	   var other_component_description_name=zmqs1.other_component_name;
+	   zmq_telepathine.set('last_component.'+component_description.name+'.'+other_component_description_name+'.from_hash',"removed",new Date().getTime());
+	   console.log("telepathine.set:",'last_component.'+component_description.name+'.'+other_component_description_name+'.from_hash',"removed",new Date().getTime());
 	}
 	
 	return component_description;

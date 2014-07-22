@@ -23,6 +23,9 @@ the one that catches is the master.
 ###telepathine synchronizes all changes from all peers to shared keys once in 2.5 seconds.
 
 
-### todo
- a planed master switch. for exect switching: when peer says bye ,for each component if a master. it says to others after what number of uniques from what hash i stop inserting and you start. also maybe to emmit empty values every second and ignore them in dedup.
+### a planed master switch. for exect switching:
 
+ when peer says bye ,for each component if a master. it says to others after what number of uniques from what hash i stop inserting and you start. also maybe to emmit empty values every second and ignore them in dedup.
+
+ implemented as ```zmq_unmaster_self();```
+ to run on the computer that needed to shutdown
