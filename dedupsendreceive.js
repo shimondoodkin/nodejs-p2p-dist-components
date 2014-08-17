@@ -1,5 +1,6 @@
 //xxhashjs replcement tomake it a single module with no dependencies for testing
-if (typeof global === 'undefined') 
+
+if (typeof module === 'undefined') 
 {
  var global=window;
  var makeCRCTable=function(){for(var r,a=[],e=0;256>e;e++){r=e;for(var n=0;8>n;n++)r=1&r?3988292384^r>>>1:r>>>1;a[e]=r}return a}(), crc32=function(r){for(var a=makeCRCTable,e=-1,n=0;n<r.length;n++)e=e>>>8^a[255&(e^r.charCodeAt(n))];return(-1^e)>>>0},XXH=crc32;
@@ -7,7 +8,7 @@ if (typeof global === 'undefined')
 else
  var XXH=require('xxhashjs');
 
- if(!global.zmqdedupprint){zmqdedupprint=true;}
+ if(!(function(){return this}()).zmqdedupprint){zmqdedupprint=false;}
 
 // dedup
 // shared receved queue
@@ -86,7 +87,7 @@ dedupreceive=function (str,state) { //var state={emitedh:[],emitedt:[],emitedd:[
    p=p==-1?-1:shared_min+p;
    //if(shared_min!==undefined) { if(p<shared_min) p=-1; } // if not found in small range
    
-   console.log("p pos=",p,"shared_min pos",shared_min,"hash=",hash," search in list",state.emitedh.slice(shared_min)," all list:",state.emitedh)
+   //console.log("p pos=",p,"shared_min pos",shared_min,"hash=",hash," search in list",state.emitedh.slice(shared_min)," all list:",state.emitedh)
    
    if(p===-1)
    {
@@ -418,7 +419,7 @@ function test4()
   return arr;
 }
 
-//test7a// 1 starts ,2 joins, 1 leaves, (input of 1 was skipped by input) 1 sends lower numbers for future mesages  ## problem
+//test7a : 1 starts ,2 joins, 1 leaves, (input of 1 was skipped by input) 1 sends lower numbers for future mesages  << problem?
 //
 //    option 1 validate time
 //
