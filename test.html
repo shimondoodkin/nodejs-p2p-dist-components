@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Test</title>
+</head>
+<body>
+  <input type="button" onclick="runafunction()" value="run a function">
+  <script src="dedupsendreceive0.js"></script>
+  <script>
+	function runafunction()
+	{
+	  console.clear();
+	  test8b();
+	}
+  </script>
+  <div id="qunit"></div>
+  <div id="qunit-fixture"></div>
+  <link rel="stylesheet" href="http://code.jquery.com/qunit/qunit-1.15.0.css">
+  <script src="http://code.jquery.com/qunit/qunit-1.15.0.js"></script>
+  <script>
+  QUnit.module( "dedup receive 0" );
+    QUnit.test( "test1", function( assert )
+	{
+	 var arr=test1();
+	 var expectedresult= [ 1, undefined, 2, undefined, 3, undefined, 4, undefined, 5, undefined ];
+	 assert.deepEqual(arr , expectedresult ,  "the result is not as expected" );
+	});
+  	QUnit.test( "test2", function( assert )
+	{
+	 var arr=test2();
+	 var expectedresult=[ 1, undefined, 2, undefined, 3, undefined, 4, undefined, 5, 6, 7, 8, 9, 10 ] ;
+	 assert.deepEqual(arr , expectedresult ,  "the result is not as expected" );
+	});
+	QUnit.test( "test3", function( assert )
+	{
+	 var arr=test3();
+	 var expectedresult= [ 1, undefined, 2, undefined, 3, undefined, 4, 5, 6, 7, 8, undefined, 9, undefined, 10, undefined ] ;
+	 assert.deepEqual(arr , expectedresult ,  "the result is not as expected" );
+	});
+	QUnit.test( "test4", function( assert )
+	{
+	 var arr=test4();
+	 var expectedresult=[ 1, undefined, 2, undefined, 3, undefined, 4, undefined, 5, undefined, 6, undefined, 7, undefined, 8, undefined, 9, undefined, 10, undefined ] ;
+	 assert.deepEqual(arr , expectedresult ,  "the result is not as expected" );
+	});
+	QUnit.test( "test7a", function( assert )
+	{
+	 var arr=test8a();
+	 var expectedresult=[  1,  undefined,  2,  undefined,  3,  undefined,  4,  undefined,  15,  5,  16,  6,  17,  7,  8,  9,  10] ;
+	 assert.deepEqual(arr , expectedresult ,  "the result is not as expected" );
+	});
+	QUnit.test( "test7b", function( assert )
+	{
+	 var arr=test8a();
+	 var expectedresult=[  1,  undefined,  2,  undefined,  3,  undefined,  4,  undefined,  15,  5,  16,  6,  17,  7,  8,  9,  10] ;
+	 assert.deepEqual(arr , expectedresult ,  "the result is not as expected" );
+	});
+	QUnit.test( "test8a", function( assert )
+	{
+	 var arr=test8a();
+	 var expectedresult=[  1,  undefined,  2,  undefined,  3,  undefined,  4,  undefined,  15,  5,  16,  6,  17,  7,  8,  9,  10] ;
+	 assert.deepEqual(arr , expectedresult ,  "the result is not as expected" );
+	});
+	
+	QUnit.test( "test8b", function( assert )
+	{
+	 var arr=test8b();
+	 var expectedresult=[1, undefined, 2, undefined, 3, undefined, 4, undefined, 5, 15, 6, 16, 7, 8, 9, 10] ;
+	 assert.deepEqual(arr , expectedresult ,  "the result is not as expected" );
+	});
+  </script>
+</body>
+</html>

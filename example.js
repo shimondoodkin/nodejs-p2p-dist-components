@@ -12,7 +12,7 @@ process.on('uncaughtException', function (err)
 });
 
 //it creates 3 components
-//example_announcer
+//example_announcer 
 //example_dbinserter
 //example_processor
 // after telepathine is initiated
@@ -45,12 +45,13 @@ example_announcer_start=function()
 	setInterval(function(){/// T
 	if(!run)return;
 	var d = new Date();
-    var n = (d.getMinutes()*60)+d.getSeconds();
-	n=Math.floor(n/3);
+    var n = ((d.getMinutes()*60)+d.getSeconds()*60)+d.getMilliseconds();
+	n=Math.floor(n/250);
 	var messagetype='time';
 	var data=n;
+	console.log("emmiting",n)
 	sendclients_dbinserter([messagetype,data])
-	},3000);
+	},250);
 	
 	
 	zmq_telepathine_addcomponent(component_description);
@@ -90,13 +91,13 @@ example_dbinserter_start=function()
 	});
 
 	Object.defineProperty(component_description, "setmaster", { value : function(){
-		component_description.setportmaster(zmqs_example_log,'example_announcer');
-		component_description.setportmaster(zmqs_insert,'example_processor');
+		component_description.setportmaster(zmqs_example_log);
+		component_description.setportmaster(zmqs_insert);
 	} }); //, enumerable:false is default
 	
 	Object.defineProperty(component_description, "setfuturemaster", { value : function(){
-		component_description.setfutureportmaster(zmqs_example_log,'example_announcer');
-		component_description.setfutureportmaster(zmqs_insert,'example_processor');
+		component_description.setfutureportmaster(zmqs_example_log);
+		component_description.setfutureportmaster(zmqs_insert);
 	} }); //, enumerable:false is default
 
 	zmq_telepathine_addcomponent(component_description);
