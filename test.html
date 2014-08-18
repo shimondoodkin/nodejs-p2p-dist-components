@@ -6,12 +6,12 @@
 </head>
 <body>
   <input type="button" onclick="runafunction()" value="run a function">
-  <script src="dedupsendreceive0.js"></script>
+  <script src="dedupsendreceive.js"></script>
   <script>
 	function runafunction()
 	{
 	  console.clear();
-	  test8b();
+	  test9a();
 	}
   </script>
   <div id="qunit"></div>
@@ -66,7 +66,21 @@
 	QUnit.test( "test8b", function( assert )
 	{
 	 var arr=test8b();
-	 var expectedresult=[1, undefined, 2, undefined, 3, undefined, 4, undefined, 5, 15, 6, 16, 7, 8, 9, 10] ;
+	 var expectedresult=[1, undefined, 2, undefined, 3, undefined, 4, undefined, 5, 15, 6, 16, 7, 8, 9, 10];
+	 assert.deepEqual(arr , expectedresult ,  "the result is not as expected" );
+	});
+	
+	QUnit.test( "test9a", function( assert )
+	{
+	 var arr=test9a();
+	 var expectedresult=[ 1, 2, 3, 4, 5, undefined, 1, 7, undefined, 8, undefined, 9, undefined, 10, undefined ] ;
+	 assert.deepEqual(arr , expectedresult ,  "the result is not as expected" );
+	});
+	
+	QUnit.test( "test9b", function( assert )
+	{
+	 var arr=test9b();
+	 var expectedresult=[ 1, 2, 3, 4, 5, 1, undefined, 7, undefined, 8, undefined, 9, undefined, 10, undefined ]; 
 	 assert.deepEqual(arr , expectedresult ,  "the result is not as expected" );
 	});
   </script>

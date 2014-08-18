@@ -1,14 +1,19 @@
+// this module more or less passes the tests
+// except it might be not reliable if there is alot of data with dealy or there is a delay. on first sync it hopes it value should be unique from end correctly otherwise otherwise the sync won't happen and it mikght wrongly offseted
+// i could not figure out how to test it it somehow worked out in test9 and passed the test sucsessfuly there shopuld be some way to make it do sync misstake searching hash from end of erray, test9 expects it to make misstake it makes the misstake the result marked as duplicate but from a correct sender with updated last pos  comes a corect same number and saves the day
+// 
 //xxhashjs replcement tomake it a single module with no dependencies for testing
 
 if (typeof module === 'undefined') 
 {
  var global=window;
+ //crc32 hash
  var makeCRCTable=function(){for(var r,a=[],e=0;256>e;e++){r=e;for(var n=0;8>n;n++)r=1&r?3988292384^r>>>1:r>>>1;a[e]=r}return a}(), crc32=function(r){for(var a=makeCRCTable,e=-1,n=0;n<r.length;n++)e=e>>>8^a[255&(e^r.charCodeAt(n))];return(-1^e)>>>0},XXH=crc32;
 }
 else
- var XXH=require('xxhashjs');
+ var XXH=require('xxhashjs');//fast hash
 
- if(!(function(){return this}()).zmqdedupprint){zmqdedupprint=false;}
+ if(!(function(){return this}()).zmqdedupprint){zmqdedupprint=true;}//default for print
 
 // dedup
 // shared receved queue
@@ -159,21 +164,22 @@ function test0()
 var sendstate0= {count_send:0},sendstate1= {count_send:0},sendstate2= {count_send:0}
 var receivestate={emitedh:[],emitedt:[],emitedd:[],emitedid:[],queues:{}}
 //var a0=[1,2,3,4,5,6,7,8,9,10], a1=[1,2,3,4,5,6,7,8,9,10]
-var a0=[1,2,3,3,3,3,3,3,3,3], a1=[1,2,3,3,3,3,3,3,3,3]
+//var a0=[1,2,3,3,3,3,3,3,3,3], a1=[1,2,3,3,3,3,3,3,3,3]
+var a0=[1,2,3,4,5,1,7,8,9,10], a1=[1,2,3,4,5,1,7,8,9,10]
 var a=[];
 for(var i=0;i<10;i++)
  a.push(dedupsend(a0.shift(),sendstate0,0))
- console.log(" var a0= ",a);
+ console.log(" var a0= ",JSON.stringify(a).replace(/,/g,',\r\n'));
 
 var a=[];
-for(var i=0;i<6;i++)
+for(var i=0;i<10;i++)
  a.push(dedupsend(a1.shift(),sendstate1,1))
- console.log(" var a1= ",a);
+ console.log(" var a1= ",JSON.stringify(a).replace(/,/g,',\r\n'));
 
- var a=[];
-for(var i=6;i<10;i++)
- a.push(dedupsend(a1.shift(),sendstate2,1))
- console.log(" var a1= ",a);
+// var a=[];
+// for(var i=6;i<10;i++)
+// a.push(dedupsend(a1.shift(),sendstate2,1))
+// console.log(" var a1= ",JSON.stringify(a));
 
  //console.log("got:",pushreturn(arr,dedupreceive(dedupsend(a0.pop(),sendstate0,0),receivestate)),dedupreceive(dedupsend(a1.pop(),sendstate1,1),receivestate)) );
 }
@@ -683,5 +689,126 @@ function test8b()
  return arr;
 }
 
+function test9a()
+{
+ var arr=[];
+ var a0=  ["0 83dcefb7. 1",
+"0 1ad5be0d. 2",
+"0 6dd28e9b. 3",
+"0 f3b61b38. 4",
+"0 84b12bae. 5",
+"0 83dcefb7. 1",
+"0 6abf4a82. 7",
+"0 fa005713. 8",
+"0 8d076785. 9",
+"0 a15d25e1. 10"]
+ var a1=  ["1 83dcefb7. 1",
+"1 1ad5be0d. 2",
+"1 6dd28e9b. 3",
+"1 f3b61b38. 4",
+"1 84b12bae. 5",
+"1 83dcefb7. 1",
+"1 6abf4a82. 7",
+"1 fa005713. 8",
+"1 8d076785. 9",
+"1 a15d25e1. 10"] 
+
+
+ var receivestate={emitedh:[],emitedt:[],emitedd:[],emitedid:[],queues:{}}
+ 
+ //if(a0[0])console.log("0:",pushreturn(arr,dedupreceive(a0[0],receivestate)));
+ if(a1[0])console.log("1:",pushreturn(arr,dedupreceive(a1[0],receivestate)) );
+ 
+ //if(a0[1])console.log("0:",pushreturn(arr,dedupreceive(a0[1],receivestate)));
+ if(a1[1])console.log("1:",pushreturn(arr,dedupreceive(a1[1],receivestate)) );
+ 
+ //if(a0[2])console.log("0:",pushreturn(arr,dedupreceive(a0[2],receivestate)));
+ if(a1[2])console.log("1:",pushreturn(arr,dedupreceive(a1[2],receivestate)) );
+ 
+ //if(a0[3])console.log("0:",pushreturn(arr,dedupreceive(a0[3],receivestate)));
+ if(a1[3])console.log("1:",pushreturn(arr,dedupreceive(a1[3],receivestate)) );
+ 
+ //if(a0[4])console.log("0:",pushreturn(arr,dedupreceive(a0[4],receivestate)));
+ if(a1[4])console.log("1:",pushreturn(arr,dedupreceive(a1[4],receivestate)) );
+ 
+ if(a0[5])console.log("0:",pushreturn(arr,dedupreceive(a0[5],receivestate)));
+ if(a1[5])console.log("1:",pushreturn(arr,dedupreceive(a1[5],receivestate)) );
+ 
+ if(a0[6])console.log("0:",pushreturn(arr,dedupreceive(a0[6],receivestate)));
+ if(a1[6])console.log("1:",pushreturn(arr,dedupreceive(a1[6],receivestate)) );
+ 
+ if(a0[7])console.log("0:",pushreturn(arr,dedupreceive(a0[7],receivestate)));
+ if(a1[7])console.log("1:",pushreturn(arr,dedupreceive(a1[7],receivestate)) );
+ 
+ if(a0[8])console.log("0:",pushreturn(arr,dedupreceive(a0[8],receivestate)));
+ if(a1[8])console.log("1:",pushreturn(arr,dedupreceive(a1[8],receivestate)) );
+ 
+ if(a0[9])console.log("0:",pushreturn(arr,dedupreceive(a0[9],receivestate)));
+ if(a1[9])console.log("1:",pushreturn(arr,dedupreceive(a1[9],receivestate)) );
+ console.log(arr);
+ return arr;
+}
+
+
+function test9b()
+{
+ var arr=[];
+ var a0=  ["0 83dcefb7. 1",
+"0 1ad5be0d. 2",
+"0 6dd28e9b. 3",
+"0 f3b61b38. 4",
+"0 84b12bae. 5",
+"0 83dcefb7. 1",
+"0 6abf4a82. 7",
+"0 fa005713. 8",
+"0 8d076785. 9",
+"0 a15d25e1. 10"]
+ var a1=  ["1 83dcefb7. 1",
+"1 1ad5be0d. 2",
+"1 6dd28e9b. 3",
+"1 f3b61b38. 4",
+"1 84b12bae. 5",
+"1 83dcefb7. 1",
+"1 6abf4a82. 7",
+"1 fa005713. 8",
+"1 8d076785. 9",
+"1 a15d25e1. 10"] 
+
+
+ var receivestate={emitedh:[],emitedt:[],emitedd:[],emitedid:[],queues:{}}
+ 
+ //if(a0[0])console.log("0:",pushreturn(arr,dedupreceive(a0[0],receivestate)));
+ if(a1[0])console.log("1:",pushreturn(arr,dedupreceive(a1[0],receivestate)) );
+ 
+ //if(a0[1])console.log("0:",pushreturn(arr,dedupreceive(a0[1],receivestate)));
+ if(a1[1])console.log("1:",pushreturn(arr,dedupreceive(a1[1],receivestate)) );
+ 
+ //if(a0[2])console.log("0:",pushreturn(arr,dedupreceive(a0[2],receivestate)));
+ if(a1[2])console.log("1:",pushreturn(arr,dedupreceive(a1[2],receivestate)) );
+ 
+ //if(a0[3])console.log("0:",pushreturn(arr,dedupreceive(a0[3],receivestate)));
+ if(a1[3])console.log("1:",pushreturn(arr,dedupreceive(a1[3],receivestate)) );
+ 
+ //if(a0[4])console.log("0:",pushreturn(arr,dedupreceive(a0[4],receivestate)));
+ if(a1[4])console.log("1:",pushreturn(arr,dedupreceive(a1[4],receivestate)) );
+ 
+ 
+ if(a1[5])console.log("1:",pushreturn(arr,dedupreceive(a1[5],receivestate)) ); //switched
+ if(a0[5])console.log("0:",pushreturn(arr,dedupreceive(a0[5],receivestate))); // 
+ 
+ if(a0[6])console.log("0:",pushreturn(arr,dedupreceive(a0[6],receivestate)));
+ if(a1[6])console.log("1:",pushreturn(arr,dedupreceive(a1[6],receivestate)) );
+ 
+ if(a0[7])console.log("0:",pushreturn(arr,dedupreceive(a0[7],receivestate)));
+ if(a1[7])console.log("1:",pushreturn(arr,dedupreceive(a1[7],receivestate)) );
+ 
+ if(a0[8])console.log("0:",pushreturn(arr,dedupreceive(a0[8],receivestate)));
+ if(a1[8])console.log("1:",pushreturn(arr,dedupreceive(a1[8],receivestate)) );
+ 
+ if(a0[9])console.log("0:",pushreturn(arr,dedupreceive(a0[9],receivestate)));
+ if(a1[9])console.log("1:",pushreturn(arr,dedupreceive(a1[9],receivestate)) );
+ console.log(arr);
+ return arr;
+}
 
 //test2();

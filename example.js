@@ -24,7 +24,7 @@ require('./index.js') //require('p2p-dist-components')
 
 if(!global.appid)appid=Math.round(Math.random()*10000)+1;// to debug concurrent database inserts.
 
-if(global.run==undefined)run=true;//for debug stop anouncer
+if(global.run==undefined)run=true;//for debug stop announcer
 
 example_announcer_start=function()
 {
@@ -45,7 +45,7 @@ example_announcer_start=function()
 	setInterval(function(){/// T
 	if(!run)return;
 	var d = new Date();
-    var n = ((d.getMinutes()*60)+d.getSeconds()*60)+d.getMilliseconds();
+    var n = ((((d.getMinutes()*60)+d.getSeconds())*60)*1000)+d.getMilliseconds();
 	n=Math.floor(n/250);
 	var messagetype='time';
 	var data=n;
