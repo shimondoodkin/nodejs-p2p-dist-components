@@ -27,5 +27,5 @@ the one that catches is the master.
 
  when peer says bye ,for each component if a master. it says to others after what number of uniques from what hash i stop inserting and you start. also maybe to emmit empty values every second and ignore them in dedup.
 
- implemented as ```zmq_unmaster_self();```
- to run on the computer that needed to shutdown
+ implemented as ```zmq_unmaster_self();```   to run on the computer that needed to shutdown , maybe not percice
+ or ```zmq_setfuturemaster();``` (type it in repl) to set master percicely
